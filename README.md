@@ -21,15 +21,15 @@ Um Cluster K8s segue o modelo construido por control plane / workers, onde o con
 
 O Control Plane é o cérebro do cluster Kubernetes. Ele gerencia o estado desejado do cluster, ou seja, define o que deve estar rodando, onde, como e quando.
 
-Dentro do control-plane possuímos outros componentes:
+Dentro do **control-plane** possuímos outros componentes:
 
-etcd: Banco de dados chave-valor que armazena todo estado do cluster.
+**etcd:** Banco de dados chave-valor que armazena todo estado do cluster.
 
-API-server: Trabalhando com JSON sobre HTTP, ele é a porta de entrada para gerenciar o Kubernetes. Para facilitar o gerenciamento, podemos integrar ao utilitário kubectl para facilitar a administração via requisições REST.
+**API-server:** Trabalhando com JSON sobre HTTP, ele é a porta de entrada para gerenciar o Kubernetes. Para facilitar o gerenciamento, podemos integrar ao utilitário kubectl para facilitar a administração via requisições REST.
 
-Scheduler: Responsável pelo nó onde irá armazenar os Pods com base na quantidade de recursos disponíveis em cada nó.
+**Scheduler:** Responsável pelo nó onde irá armazenar os Pods com base na quantidade de recursos disponíveis em cada nó.
 
-Controller-manager: Executa tarefas que são usadas para monitorar e executar o estado do Pod. Se um pod foi definido com 10 réplicas, o controller-manager irá ler o último estado setado no etcd e o atual estado do Pod, se divergentes, ele irá tentar concilar o pod com o estado estabelecido no etcd.
+**Controller-manager:** Executa tarefas que são usadas para monitorar e executar o estado do Pod. Se um pod foi definido com 10 réplicas, o controller-manager irá ler o último estado setado no etcd e o atual estado do Pod, se divergentes, ele irá tentar concilar o pod com o estado estabelecido no etcd.
 
  
 
@@ -37,9 +37,9 @@ Controller-manager: Executa tarefas que são usadas para monitorar e executar o 
 
 Os worker nodes são os servidores que rodam os containers da aplicação (ou seja, os pods).
 
-Kubelet: Agent que conversa diretamente com o controll-manager e é executado em todos nós dos Workers com a função de garantir que os containers estejam rodando conforme ao control-plane.
+**Kubelet:** Agent que conversa diretamente com o controll-manager e é executado em todos nós dos Workers com a função de garantir que os containers estejam rodando conforme ao control-plane.
 
-Kube-proxy: Trabalhando como um roteador dos Pods, tem a função de rotear os pacotes de rede dos nós e pods usando IPtables ou IPVS.
+**Kube-proxy:** Trabalhando como um roteador dos Pods, tem a função de rotear os pacotes de rede dos nós e pods usando IPtables ou IPVS.
 
 
 
@@ -57,9 +57,9 @@ arquitetura
 └─ Container Runtime    ← Executa containers
 ````
 
-Exemplo: Falamos para o k8s que precisamos de mais instâncias do Prometheus. O Control-plane irá dizer "Quero 4 instâncias" e os Works irão executar a tarefa.
+**Exemplo:** Falamos para o k8s que precisamos de mais instâncias do Prometheus. O Control-plane irá dizer "Quero 4 instâncias" e os Works irão executar a tarefa.
 
-fluxo
+FLUXO
 ````
 kubectl apply -f app.yaml ───▶ kube-apiserver ───▶ etcd (salva estado)
                                   │
@@ -150,7 +150,7 @@ Para lidar com os containers, o K8s trabalha com uma abstração chamada de Pod.
 
 Agora que já foi explicado os principais componentes do K8s. Irei criar meu cluster K8s localmente usando o KinD.
 
-[KinD](https://github.com/kubernetes-sigs/kind) (Kubernetes IN Docker) é uma ferramenta que permite rodar clusters Kubernetes inteiros dentro de containers Docker, de forma rápida, leve e local. Ele criado principalmente para desenvolvimento, testes e CI/CD, permitindo simular um ambiente Kubernetes sem precisar de VMs, cloud, ou uma instalação pesada. Outra forma de efetuar deploy do K8s localmente é com o [Minikube](https://github.com/kubernetes-sigs/kind).
+[KinD](https://github.com/kubernetes-sigs/kind) (Kubernetes IN Docker) é uma ferramenta que permite rodar clusters Kubernetes inteiros dentro de containers Docker, de forma rápida, leve e local. Ele criado principalmente para desenvolvimento, testes e CI/CD, permitindo simular um ambiente Kubernetes sem precisar de VMs, cloud, ou uma instalação pesada. Outra forma de efetuar deploy do K8s localmente é com o [Minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Fwindows%2Fx86-64%2Fstable%2F.exe+download).
 
 Irei instalar o KinD seguindo os requisitos da documentação, como ele usa containers Docker para criar os clusters, irei instalar o Docker.
 
@@ -166,7 +166,11 @@ Permissão ao usuário para usar o Docker
 sudo usermod -aG docker $USER
 newgrp docker
 ````
+
+![Docker](https://img.icons8.com/?size=100&id=22813&format=png&color=000000)
+
 Docker Instalado!
+
 ![Docker](imagens/dockerversion.png)
 
 
@@ -196,6 +200,7 @@ sudo mv kubectl /usr/local/bin/
 ````
 kubectl version --client
 ````
+
 ![kubectl](imagens/kubectlversion.png)
 
 
@@ -205,12 +210,14 @@ Dependências instaladas com sucesso! Agora irei iniciar o processo de criação
 kind create cluster --name meu-cluster
 ````
 Cluster Criado.
+
 ![kind](imagens/kind.png)
 
 Verificando o Cluster:
 ````
 kind get clusters
 ````
+
 ![docker](imagens/clusters.png)
 
 
@@ -223,6 +230,7 @@ Verificando informações do Cluster:
 kubectl cluster-info
 ````
 O Control Plane está rodando localmente (Kind usa localhost com uma porta aleatória).O DNS interno (CoreDNS) está ativo — essencial para comunicação entre pods.
+
 ![kind](imagens/info.png)
 
 
@@ -302,7 +310,7 @@ kind delete cluster --name meu-cluster
 
 Cluster KinD Excluído!
 
-
+-----------
 ### Criando Cluster personalizados via manifest YAML
 
 Outra forma de trabalhar com o Kind é através de manifest .yaml onde podemos definindo parametros de porta, redes, quantidades de nodes e Workers.
@@ -317,7 +325,7 @@ kind-config.yaml
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 networking:
-  apiServerAddress: "192.168.2.63"  # IP externo do host
+  apiServerAddress: "192.168.2.63"  # IP do host físico
   apiServerPort: 17443
   podSubnet: "10.244.0.0/16"
   serviceSubnet: "10.96.0.0/12"
@@ -330,7 +338,9 @@ nodes:
       - containerPort: 443
         hostPort: 443
       - containerPort: 6443
-        hostPort: 17445  # Porta do servidor API
+        hostPort: 17445
+      - containerPort: 30080
+        hostPort: 30080    # 🔥 necessário para acessar NodePort 30080
 
   - role: worker
 ````
@@ -342,9 +352,132 @@ Irei realizar o deploy com o comando kind create cluster --name nome_do_cluster 
 kind create cluster --name meu-cluster --config kind-config.yaml
 ````
 
+**Cluster deployado via manifest, os Pods estão sendo criados.**
+
+![Kind](imagens/kind2.png)
+
+
+
+----------------------
+
+### NAMESPACE
+
+Como já sabemos, Docker ou outros tipos de containers são isolamentos de recursos, onde o Linux mente para a aplicação fazendo ela executar como se estivesse em outra máquina com seus próprios recursos de soft e hardware.
+
+As Namespace são as responsáveis por este papel, elas são uma divisão lógica do Linux onde permite isolar recursos, dentro do Cluster podemos usar namespaces para ter vários ambientes, pods, services, deployments...
+
+Podemos verificar todas as namespaces do cluster:
+````
+kubectl get namespaces
+````
+Ao efetuar deploy do KinD, ele já cria todas as namespaces necessários para o cluster automaticamente.
+![namespace](imagens/namespace.png)
+
+Para verificar os Pods de uma namespace: **kubectl get pods -n nome_da_namespace
+
+Verificando pods da namespace kube-system:
+````
+kubectl get pod -n kube-system
+````
+
+![namespace](imagens/kubesystem.png)
+
+
+Para verificar todos pods de todas namespaces:
+````
+kubectl get pods -A
+````
+
+-----------------------------------
+
+### Deploy Nginx no Cluster via manifest YAML
+
+````
+nano nginx_kubernetes.yaml
+````
+
+Manifest nginx_kubernetes.yaml
+````
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: nginx
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-deploy
+  namespace: nginx
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:latest
+          ports:
+            - containerPort: 80
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+  namespace: nginx
+spec:
+  selector:
+    app: nginx
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30080  # Porta acessível no host
+````
+**Realizando o deployment:** kubectl apply -f nome_do_manifest.yaml
+````
+kubectl apply -f nginx_kubernetes.yaml
+````
+![namespace](imagens/deploynginx.png)
+
+Com o comando **kubectl get all -n nginx** eu posso visualizar todos os pods da namespace nginx.
+
+````
+kubectl get all -n nginx
+````
+
+**Deployment** e **Services** nginx criados com sucesso.
+![namespace](imagens/allnginx.png)
+
+
+Testando Pods Nginx:
+
+Com os Pods em Running, o Service está apontando para a porta 30080 e o Type está como NodePort, ou seja, o Pod do Nginx está sendo exposto para rede.
+````
+curl https://127.0.0.1:30080
+````
+![namespace](imagens/curl.png)
+
+**LEMBRE-SE** - No manifest para deploy do cluster *kind-config.yaml* eu passei o parametro para expor a porta:
+
+````
+- containerPort: 30080
+        hostPort: 30080  
+````
+Acesso Web Nginx:
+
+![namespace](imagens/nginx.png)
 
 
 
 
-
-
+----------
