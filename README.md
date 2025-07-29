@@ -146,12 +146,201 @@ Para lidar com os containers, o K8s trabalha com uma abstração chamada de Pod.
 ------------
 
 
-# DEPLOY
+# DEPLOY CLUSTER KUBERNETES
+
+Agora que já foi explicado os principais componentes do K8s. Irei criar meu cluster K8s localmente usando o KinD.
+
+[KinD](https://github.com/kubernetes-sigs/kind) (Kubernetes IN Docker) é uma ferramenta que permite rodar clusters Kubernetes inteiros dentro de containers Docker, de forma rápida, leve e local. Ele criado principalmente para desenvolvimento, testes e CI/CD, permitindo simular um ambiente Kubernetes sem precisar de VMs, cloud, ou uma instalação pesada. Outra forma de efetuar deploy do K8s localmente é com o [Minikube](https://github.com/kubernetes-sigs/kind).
+
+Irei instalar o KinD seguindo os requisitos da documentação, como ele usa containers Docker para criar os clusters, irei instalar o Docker.
+
+Instalando Docker:
+````
+sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+sudo dnf install docker-ce docker-ce-cli containerd.io
+sudo systemctl enable --now docker
+````
+
+Permissão ao usuário para usar o Docker
+````
+sudo usermod -aG docker $USER
+newgrp docker
+````
+Docker Instalado!
+![Docker](imagens/dockerversion.png)
 
 
 
+Deploy KinD
+````
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+chmod +x kind
+sudo mv kind /usr/local/bin/
+````
+
+Rode ***kind version*** para verificar a instalação.
+
+![Docker](imagens/kindversion.png)
 
 
+KinD instalado com sucesso!
+
+Para facilitar o gerenciamento do K8s, irei utilizar o utilitário ***kubectl***.
+
+Instalando kubectl:
+````
+curl -LO https://dl.k8s.io/release/v1.33.0/bin/linux/amd64/kubectl
+chmod +x kubectl
+sudo mv kubectl /usr/local/bin/
+````
+````
+kubectl version --client
+````
+![kubectl](imagens/kubectlversion.png)
+
+
+Dependências instaladas com sucesso! Agora irei iniciar o processo de criação do Cluster.
+
+````
+kind create cluster --name meu-cluster
+````
+Cluster Criado.
+![kind](imagens/kind.png)
+
+Verificando o Cluster:
+````
+kind get clusters
+````
+![docker](imagens/clusters.png)
+
+
+Como o KinD utiliza Docker, com o comando **Docker ps** podemos visualizar o container criado.
+
+![docker](imagens/dockerps.png)
+
+Verificando informações do Cluster:
+````
+kubectl cluster-info
+````
+O Control Plane está rodando localmente (Kind usa localhost com uma porta aleatória).O DNS interno (CoreDNS) está ativo — essencial para comunicação entre pods.
+![kind](imagens/info.png)
+
+
+Verificando Nodes(Nós):
+````
+kubectl get node
+````
+Um único node (control-plane), com a versão v1.29.2. Está com status Ready, ou seja: funcional e aceitando workloads.
+![kind](imagens/node.png)
+
+Verificando todos os Pods:
+````
+kubectl get pods -A
+````
+Aqui posso ver todos os Pods em Status "Running" no meu cluster.
+![kind](imagens/pods.png)
+
+````
+Pod	Função
+coredns-xxxx	Resolve nomes DNS dentro do cluster
+etcd-meu-cluster-control-plane	Banco de dados do cluster
+kube-apiserver-meu-cluster...	API do cluster
+kube-controller-manager-...	Controla estados de recursos
+kube-scheduler-...	Decide onde rodar pods
+kube-proxy	Roteamento de rede
+kindnet	Plugin de rede (CNI) usado pelo Kind
+local-path-provisioner	Provisionador de volumes persistentes localmente
+````
+
+**Cluster Rodando!**
+
+Agora irei instalar uma aplicação do nginx como teste de deployment com o comando ***kubectl create nome_do_pod --imagem=***.
+
+Deployment nginx
+````
+kubectl create deployment nginx --image=nginx
+````
+Ao utilizar ***kubectl create*** o container nginx é baixado diretamente do Docker Hub, que é o repositório público padrão de imagens Docker. Ao passar parametro "--image=nginx" a imagem será buscada em "*docker.io/library/nginx:latest*".
+
+O Kubectl envia o comando para criar o Deployment para o KubeAPI dentro do Control-plane, o control-plane envia a solicitação para o Kubelet receber dentro do Worker. Após a requisição ser recebida, o container runtime irá começar a baixar a imagem direto do Docker Hub.
+
+
+Ao criar um novo deployment, o status do container fica como "ContainerCreating".
+![deployment](imagens/deployment.png)
+
+Após esperar alguns segundos, o status muda para "Running".
+![deployment](imagens/deployment2.png)
+
+Criando Serviço na porta 80 como NodePort.
+````
+kubectl expose deployment nginx --port=80 --type=NodePort
+kubectl get svc
+````
+![service](imagens/service.png)
+
+
+Aplicação Deployada e Service criados com sucesso!
+
+Agora irei deletar os pods criados.
+
+**Deletando deployment:** kubectl delete deployment nginx  
+
+**Deletando service:** kubectl delete service nginx  
+
+
+Posso verificar se ainda existe algum deployment ou service do nginx com **kubectl get ALL**
+
+Podemos notar que todos pods nginx foram excluídos.
+![service](imagens/delete.png)
+
+**Deletando CLUSTER KIND**
+
+````
+kind delete cluster --name meu-cluster
+````
+![delete](imagens/deletes.png)
+
+Cluster KinD Excluído!
+
+
+### Criando Cluster personalizados via manifest YAML
+
+Outra forma de trabalhar com o Kind é através de manifest .yaml onde podemos definindo parametros de porta, redes, quantidades de nodes e Workers.
+
+Irei criar um novo arquivo .yaml definindo as configurações do Cluster.
+
+````
+nano kind-config.yaml
+````
+kind-config.yaml
+````
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  apiServerAddress: "192.168.2.63"  # IP externo do host
+  apiServerPort: 17443
+  podSubnet: "10.244.0.0/16"
+  serviceSubnet: "10.96.0.0/12"
+
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+      - containerPort: 443
+        hostPort: 443
+      - containerPort: 6443
+        hostPort: 17445  # Porta do servidor API
+
+  - role: worker
+````
+
+Deploy
+
+Irei realizar o deploy com o comando kind create cluster --name nome_do_cluster --config meu_manifest.yaml
+````
+kind create cluster --name meu-cluster --config kind-config.yaml
+````
 
 
 
