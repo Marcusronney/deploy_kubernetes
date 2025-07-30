@@ -15,21 +15,29 @@ Um Cluster K8s segue o modelo construido por control plane / workers, onde o con
 
 ![Arquitetura Kubernetes](imagens/arquitetura.svg)
 
+## Cluster
+
+Um Cluster Kubernetes é um conjunto de nodes(nós) que trabalham em conjunto para executar os Pods.
+
+O Cluster é composto por Nodes que podem ser tanto **control plane** quanto **workers**. 
+
+Uma ótimoa analogia seria uma orquestra, onde temos uma pessoa regendo a orquestra, que é o control plane, e temos as pessoas musicistas, que estão executando os instrumentos, que são os workers.
+
 -----
 
 **Control-plane:** Controle do Cluster!
 
-O Control Plane é o cérebro do cluster Kubernetes. Ele gerencia o estado desejado do cluster, ou seja, define o que deve estar rodando, onde, como e quando.
+O Control Plane é o cérebro do cluster Kubernetes. Ele gerencia o estado desejado de todo ocluster, ou seja, define o que deve estar rodando, onde, como e quando.
 
 Dentro do **control-plane** possuímos outros componentes:
 
-**etcd:** Banco de dados chave-valor que armazena todo estado do cluster.
+  **etcd:** Banco de dados chave-valor que armazena todo estado do cluster.
 
-**API-server:** Trabalhando com JSON sobre HTTP, ele é a porta de entrada para gerenciar o Kubernetes. Para facilitar o gerenciamento, podemos integrar ao utilitário kubectl para facilitar a administração via requisições REST.
+  **API-server:** Trabalhando com JSON sobre HTTP, ele é a porta de entrada para gerenciar o Kubernetes. Para facilitar o gerenciamento, podemos integrar ao utilitário kubectl para facilitar a administração via requisições REST.
 
-**Scheduler:** Responsável pelo nó onde irá armazenar os Pods com base na quantidade de recursos disponíveis em cada nó.
+  **Scheduler:** Responsável pelo nó onde irá armazenar os Pods com base na quantidade de recursos disponíveis em cada nó.
 
-**Controller-manager:** Executa tarefas que são usadas para monitorar e executar o estado do Pod. Se um pod foi definido com 10 réplicas, o controller-manager irá ler o último estado setado no etcd e o atual estado do Pod, se divergentes, ele irá tentar concilar o pod com o estado estabelecido no etcd.
+  **Controller-manager:** Executa tarefas que são usadas para monitorar e executar o estado do Pod. Se um pod foi definido com 10 réplicas, o controller-manager irá ler o último estado setado no etcd e o atual estado do Pod, se divergentes, ele irá tentar concilar o pod com o estado estabelecido no etcd.
 
  ---
 
@@ -37,9 +45,9 @@ Dentro do **control-plane** possuímos outros componentes:
 
 Os worker nodes são os servidores que rodam os containers da aplicação (ou seja, os pods).
 
-**Kubelet:** Agent que conversa diretamente com o controll-manager e é executado em todos nós dos Workers com a função de garantir que os containers estejam rodando conforme ao control-plane.
+  **Kubelet:** Agent que conversa diretamente com o control-manager e é executado em todos nós dos Workers com a função de garantir que os containers estejam rodando conforme ao definido no control-plane.
 
-**Kube-proxy:** Trabalhando como um roteador dos Pods, tem a função de rotear os pacotes de rede dos nós e pods usando IPtables ou IPVS.
+  **Kube-proxy:** Trabalhando como um roteador dos Pods, tem a função de rotear os pacotes de rede dos nós e pods usando IPtables ou IPVS.
 
 
 
@@ -72,6 +80,10 @@ kubectl apply -f app.yaml ───▶ kube-apiserver ───▶ etcd (salva e
                                   ▼
                        kube-proxy gerencia o tráfego para os pods
 ````
+
+# Cluster
+
+
 
 ----------
 
@@ -240,6 +252,138 @@ kubectl delete replicaset nginx-replicaset
 
 # DaemonSet
 
+DaemonSet tem a função de manter uma cópia do Pod em todos os Nós do Cluster. Muito usado para tarefas de infraestrutura, um exemplo de uso é quando precisamos manter um Pod de monitoramento em todos os Nós do Cluster.
+
+Portanto, se um cluster possuir 3 nós, o DemonSet irá garantir que todos os nós executem uma réplica do Pod.
+
+**Criando um DaemonSet**
+
+
+````
+nano node-exporter-daemonset.yaml
+````
+
+
+node-exporter-daemonset.yaml
+````
+apiVersion: apps/v1 # Versão da API do Kubernetes do objeto
+kind: DaemonSet # Tipo do objeto
+metadata: # Informações sobre o objeto
+  name: node-exporter # Nome do objeto
+spec: # Especificação do objeto
+  selector: # Seletor do objeto
+    matchLabels: # Labels que serão utilizadas para selecionar os Pods
+      app: node-exporter # Label que será utilizada para selecionar os Pods
+  template: # Template do objeto
+    metadata: # Informações sobre o objeto
+      labels: # Labels que serão adicionadas aos Pods
+        app: node-exporter # Label que será adicionada aos Pods
+    spec: # Especificação do objeto, no caso, a especificação do Pod
+      hostNetwork: true # Habilita o uso da rede do host, usar com cuidado
+      containers: # Lista de contêineres que serão executados no Pod
+      - name: node-exporter # Nome do contêiner
+        image: prom/node-exporter:latest # Imagem do contêiner
+        ports: # Lista de portas que serão expostas no contêiner
+        - containerPort: 9100 # Porta que será exposta no contêiner
+          hostPort: 9100 # Porta que será exposta no host
+        volumeMounts: # Lista de volumes que serão montados no contêiner, pois o node-exporter precisa de acesso ao /proc e /sys
+        - name: proc # Nome do volume
+          mountPath: /host/proc # Caminho onde o volume será montado no contêiner
+          readOnly: true # Habilita o modo de leitura apenas
+        - name: sys # Nome do volume 
+          mountPath: /host/sys # Caminho onde o volume será montado no contêiner
+          readOnly: true # Habilita o modo de leitura apenas
+      volumes: # Lista de volumes que serão utilizados no Pod
+      - name: proc # Nome do volume
+        hostPath: # Tipo de volume 
+          path: /proc # Caminho do volume no host
+      - name: sys # Nome do volume
+        hostPath: # Tipo de volume
+          path: /sys # Caminho do volume no host
+````
+
+Aplicando o DaemonSet
+````
+kubectl apply -f node-exporter-daemonset.yaml
+````
+
+Verificando o DaemonSet criado
+````
+kubectl apply -f node-exporter-daemonset.yaml
+````
+
+Exibir Pods gerenciados pelo DaemonSet
+````
+kubectl get pods -l app=node-exporter
+````
+
+
+
+--------------------
+
+# Probes
+
+Probes são uma forma de monitorar os Pods automaticamente com a finalidade de saber o estado de vida do Pod. Através do status do Pod, decisções são tomadas como por exemplo: Reiniciar containers, remover containers, saber se deve ou não enviar dados para container.
+
+
+As Probes são dividas em 3 tipos: **LivenessProbe**, **ReadinessProbe** e **StartupProbe**.
+
+### LivenessProbe.
+
+A LivenessProble é responsável por verificar a integridade do Pod, através dela é possível ver oque está rodando dentro do Pod e se está respondendo conforme o esperado.
+
+### ReadinessProbe.
+
+ReadinessProbe é usada para verificar se o container está pronto para receber tráfego e requisições da rede externa.
+
+### StartupProbe
+
+StartupProbe é responsável por verificar se o container foi incializado corretamente e se está pronto para operar. Ela é semelhante a readinessProbe, a única diferença é que ela é executado uma única vez no começo de vida do conteiner.
+
+
+
+````
+nano nginx-liveness.yaml
+````
+nginx-liveness.yaml
+````
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-deployment
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-deployment
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: nginx-deployment
+    spec:
+      containers:
+      - image: nginx:1.19.2
+        name: nginx
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: 256Mi
+          requests:
+            cpu: 0.25
+            memory: 128Mi
+        livenessProbe: # Aqui é onde vamos adicionar a nossa livenessProbe
+          tcpSocket: # Aqui vamos utilizar o tcpSocket, onde vamos se conectar ao container através do protocolo TCP
+            port: 80 # Qual porta TCP vamos utilizar para se conectar ao container
+          initialDelaySeconds: 10 # Quantos segundos vamos esperar para executar a primeira verificação
+          periodSeconds: 10 # A cada quantos segundos vamos executar a verificação
+          timeoutSeconds: 5 # Quantos segundos vamos esperar para considerar que a verificação falhou
+          failureThreshold: 3 # Quantos falhas consecutivas vamos aceitar antes de reiniciar o contai
+````
+
+
 
 
 -------------------
@@ -343,6 +487,10 @@ curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
 chmod +x kind
 sudo mv kind /usr/local/bin/
 ````
+Desligando swap (recomendo em ambientes K8s)
+````
+sudo swapoff -a
+````
 
 Rode ***kind version*** para verificar a instalação.
 
@@ -383,7 +531,7 @@ kind get clusters
 ![docker](imagens/clusters.png)
 
 
-Como o KinD utiliza Docker, com o comando **Docker ps** podemos visualizar o container criado.
+Como o KinD utiliza Docker, com o comando "**Docker ps**" podemos visualizar o container criado.
 
 ![docker](imagens/dockerps.png)
 
@@ -652,18 +800,99 @@ Curl retornando a página web do nginx.
 
 ![namespace](imagens/nginx.png)
 
-
-
-
 ----------
 
+# Volumes no Kubernetes
+
+Os Volumes no Kubernetes são diretórios dentro do Pod utilizados para armazenar os dados. Existem 2 tipos de volumes, os **ephemeral volumes** e os **persistent volumes**.
+
+**Ephemeral Volumes** = São volumes criados e destruídos junto com o Pod, qualquer problema com o Pod ele será excluído junto.
+
+**Persistent** = São volumes que são criados e não são destruídos quando o Pod morre, eles são persistidos e os dados são mantidos mesmo quando o Pod é excluído.
 
 
 
+## Volumes Storage Class
+
+**Storage Class** é um objeto que descreve classes de armazenamento disponível no Cluster. Ela é útil para gerenciar diferentes tipos de armazenamento e também pode ser usada para definir políticas de retenção, provisionamento e outras características de armazenamento.
+
+Cada StorageClass é definida com um provisionador, que é responsável por criar PersistentVolumes dinamicamente conforme necessário. Os provisionadores podem ser internos (fornecidos pelo próprio Kubernetes) ou externos (fornecidos por provedores de armazenamento específicos).
+
+Para ver a lista completa de provisionadores, consulte a documentação do Kubernetes no link https://kubernetes.io/docs/concepts/storage/storage-classes/#provisioner.
+
+Verificando o Storage Class disponível no Cluster:
+````
+kubectl get storageclass
+````
+
+Como estou no KinD, o padrão é o "rancher.io/local-path" que cria volumes **PersistentVolume** no diretório do host.
+
+![storageclass](imagens/storageclass.png)
+
+Posso usar o **Describe** para ver os detalhes do Storage Class:
+````
+kubectl describe storageclass standard
+````
+
+![storageclass](imagens/storage2.png)
+
+
+## PV - Persistent Volume
+
+PV é um objeto no K8s que representa um armazenamento físico dentro do cluster. Ele pode ser um HD, SSD, NAS ou algum serviço Cloud como, por exemplo o AWS EBS.
+
+Ele é utilizado para fornecer armazenamento durável, os dados são armazenados mesmo quando o Pod morre, reiniciados ou movidos de Node.
+
+Consultar Persistent Volume disponível:
+````
+kubectl get pv -A
+````
+Como o PV não é ativo por default, nenhum armazenamento PV é encontrado.
+
+![pv](imagens/pv.png)
+
+
+### Criando Armazenamento PV - Persistent Volume
 
 
 
+pv.yaml
+````
+apiVersion: v1 # Versão da API do Kubernetes
+kind: PersistentVolume # Tipo de objeto que estamos criando, no caso um PersistentVolume
+metadata: # Informações sobre o objeto
+  name: meu-pv # Nome do nosso PV
+  labels:
+    storage: local
+spec: # Especificações do nosso PV
+  capacity: # Capacidade do PV
+    storage: 1Gi # 1 Gigabyte de armazenamento
+  accessModes: # Modos de acesso ao PV
+    - ReadWriteOnce # Modo de acesso ReadWriteOnce, ou seja, o PV pode ser montado como leitura e escrita por um único nó
+  persistentVolumeReclaimPolicy: Retain # Política de reivindicação do PV, ou seja, o PV não será excluído quando o PVC for excluído
+  hostPath: # Tipo de armazenamento que vamos utilizar, no caso um hostPath
+    path: "/mnt/data" # Caminho do hostPath, do nosso nó, onde o PV será criado
+  storageClassName: standard # Nome da classe de armazenamento que será utilizada
+  ````
+
+Aplicando pv.yaml
+````
+kubectl apply -f pv.yaml
+````
+
+![pv](imagens/pv2.png)
 
 
+Listando PV do Cluster
+````
+kubectl get pv
+````
 
+![pv](imagens/pv3.png)
 
+Visualizando os detalhes do PV
+`````
+kubectl describe pv meu-pv
+````
+
+![pv](imagens/pv4.png)
