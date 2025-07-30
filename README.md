@@ -156,6 +156,8 @@ selector:
 ````
 
 Este campo **strategy** defini qual estratégia será usada para Update dos Pods, quando vázio **{}** a estratégia definida por padrão é **RollingUpdate**.
+
+**RllingUpdate** é utilizada para atualizar os Pods de um Deployment de forma gradual, ou seja, ela atualiza um Pod por vez, ou um grupo de Pods por vez.
 ````
 strategy: {}
 ````
@@ -200,15 +202,52 @@ Verificando o deployment criado:
 kubectl get deployments -l app=nginx-deployment
 ````
 
+![nginx](imagens/nginxdeploymeny.png)
+
+
+Posso também verificar todos os Pods que o Deployment está gerenciando.
+
+````
+kubectl get pods -l app=nginx-deployment
+````
+![nginx](imagens/nginx2.png)
+
 ----------------------
 
 ### **ReplicaSets:** 
 
-Responsável por garantir a quantidade de Pods em execução dentro do **nó**.
+Responsável por garantir a quantidade de Pods em execução dentro do **nó**. Ao criar um deployment, atumaticamente um ReplicaSet é criado e esse ReplicaSet irá criar os Pods listados dentro do Deployment.
+
+**Listando os Pods do ReplicaSet criados pelo Deployment nginx-deployment**
+````
+kubectl get replicasets -l app=nginx-deployment
+````
+Como o ReplicaSet cria os Pods, podemos ver a quantidade de Pods criados.
+
+![replicaset](imagens/nginxreplica.png)
+
+**Listando todos ReplicaSet do Cluster:**
+
+````
+kubectl get replicasets
+````
+
+**Apagando ReplicaSet**
+````
+kubectl delete replicaset nginx-replicaset
+````
+-----------------------
+
+# DaemonSet
+
+
+
+-------------------
 
 **Services:** Função de expor os Pods na rede permitindo uma comunicação da rede Externa para dentro da Lan do Cluster.
 
 ---------
+
 
 ### **Tipos de Services:**
 
