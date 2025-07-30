@@ -1,6 +1,4 @@
 # deploy_kubernetes
-Entendendo de deployando Kubernetes
-
 
 **Kubernetes (K8S)**
 
@@ -17,6 +15,8 @@ Um Cluster K8s segue o modelo construido por control plane / workers, onde o con
 
 ![Arquitetura Kubernetes](imagens/arquitetura.svg)
 
+-----
+
 **Control-plane:** Controle do Cluster!
 
 O Control Plane é o cérebro do cluster Kubernetes. Ele gerencia o estado desejado do cluster, ou seja, define o que deve estar rodando, onde, como e quando.
@@ -31,7 +31,7 @@ Dentro do **control-plane** possuímos outros componentes:
 
 **Controller-manager:** Executa tarefas que são usadas para monitorar e executar o estado do Pod. Se um pod foi definido com 10 réplicas, o controller-manager irá ler o último estado setado no etcd e o atual estado do Pod, se divergentes, ele irá tentar concilar o pod com o estado estabelecido no etcd.
 
- 
+ ---
 
 **Workers:** Trabalho bruto!
 
@@ -73,20 +73,142 @@ kubectl apply -f app.yaml ───▶ kube-apiserver ───▶ etcd (salva e
                        kube-proxy gerencia o tráfego para os pods
 ````
 
+----------
 
+### Gerenciamento dos Containers
 
-### Gerenciamento dos Containers (Pod - Menor unidade do Kubernetes)
+**Pod - Menor unidade do Kubernetes**
 
-**Pod:**
 Para lidar com os containers, o K8s trabalha com uma abstração chamada de Pod. K8s não acessa o container diretamente, ele organiza dentro de um grupo denominados **Pods**, onde um Pod pode ter vários containers dividindo recursos de memórias, CPU, volumes, endereços...
 
+---------------------------------
 
-**Deployment:** Um dos principais controllers do K8s, ele gerencia o ciclo de vida do Pod por completo, garantindo que um Pod tenha o número de réplicas determinadas dentro dos workers do cluster. Ele também cuida de outras caracteristicas do Pod, como Portas, imagem, atualizações, Volumes e variáveis de ambiente, outra caracteristica é que ele também ajuda se integra ao ReplicaSet para garantir alta disponibilidade.
+### **Deployment:** 
 
+Um dos principais controllers do K8s, ele gerencia o ciclo de vida do Pod por completo, garantindo que um Pod tenha o número de réplicas determinadas dentro dos workers do cluster.
 
-**ReplicaSets:** Responsável por garantir a quantidade de Pods em execução dentro do **nó**.
+Ele também cuida de outras caracteristicas do Pod, como Portas, imagem, atualizações, Volumes e variáveis de ambiente.
+
+Outra caracteristica é que ele também se integra e gerencia o ReplicaSet para garantir alta disponibilidade, portanto, ao criar um Deployment, automaticamente é criado um **ReplicaSet**.
+
+**Como criar um Deployment?**
+
+Para criar um Deployment, é necessário um arquivo YAML definindo todos os parâmetros de configuração.
+
+**deployment.yaml**
+````
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-deployment
+  name: nginx-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-deployment
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: nginx-deployment
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: 256Mi
+          requests:
+            cpu: 0.25
+            memory: 128Mi
+````
+
+**Explicação:**
+
+No campo **Kind:** estou definindo o tipo de objeto como Deploymeny e a versão da API em **apiVersion:**
+````
+apiVersion: apps/v1
+kind: Deployment
+````
+
+Aqui defino os **metada:** e dou etiquetas aos objetos com **labels:**. Assim eu consigo utilizar essas etiquetas para configurações posteriormanete.
+````
+metadata:
+  labels:
+    app: nginx-deployment
+  name: nginx-deployment
+````
+
+Aqui defino o número de réplicas para 3.
+````
+spec:
+  replicas: 3
+````
+
+Aqui estou definindo que todos os Pods que possuírem a etiqueta "nginx-deployment" serão gerenciados por este deployment.
+````
+selector:
+  matchLabels:
+    app: nginx-deployment
+````
+
+Este campo **strategy** defini qual estratégia será usada para Update dos Pods, quando vázio **{}** a estratégia definida por padrão é **RollingUpdate**.
+````
+strategy: {}
+````
+
+Definindo o Template dos Pods que serão criados pelo Deployment. Template é o modelo que os Pods devem ser construídos. 
+
+Ao definir no campo acima "** spec: \ selector: \ matchLabels: \ app: nginx-deployment**" o Deployment irá procurar por todos os Pods com o rótulo "**nginx-deployment**". No campo templates: eu defino o mesmo rótulo para o deployment se conectar aos Pods criados.
+````
+template:
+  metadata:
+    labels:
+      app: nginx-deployment
+````
+
+Aqui estou definindo que os Pods terão a imagem do **Nginx**.
+````
+  spec:
+    containers:
+    - image: nginx
+      name: nginx
+````
+Aqui eu defino os Recursos de Memória e Hardware.
+No campo **limits** é definido a quantidade máxima que cada container pode usar. E em **requests** é definido a quantidade reservada de CPU e Memória.
+````
+      resources:
+        limits:
+          cpu: "0.5"
+          memory: 256Mi
+        requests:
+          cpu: 0.25
+          memory: 128Mi
+````
+
+**Para aplicar o deployment:** *kubectl apply -f nome_do_deployment.yaml
+
+````
+kubectl apply -f deployment.yaml
+````
+
+Verificando o deployment criado:
+````
+kubectl get deployments -l app=nginx-deployment
+````
+
+----------------------
+
+### **ReplicaSets:** 
+
+Responsável por garantir a quantidade de Pods em execução dentro do **nó**.
 
 **Services:** Função de expor os Pods na rede permitindo uma comunicação da rede Externa para dentro da Lan do Cluster.
+
+---------
 
 ### **Tipos de Services:**
 
@@ -174,6 +296,7 @@ Docker Instalado!
 ![Docker](imagens/dockerversion.png)
 
 
+------------------------
 
 Deploy KinD
 ````
@@ -239,6 +362,7 @@ Verificando Nodes(Nós):
 kubectl get node
 ````
 Um único node (control-plane), com a versão v1.29.2. Está com status Ready, ou seja: funcional e aceitando workloads.
+
 ![kind](imagens/node.png)
 
 Verificando todos os Pods:
@@ -246,6 +370,7 @@ Verificando todos os Pods:
 kubectl get pods -A
 ````
 Aqui posso ver todos os Pods em Status "Running" no meu cluster.
+
 ![kind](imagens/pods.png)
 
 ````
@@ -264,7 +389,7 @@ local-path-provisioner	Provisionador de volumes persistentes localmente
 
 Agora irei instalar uma aplicação do nginx como teste de deployment com o comando ***kubectl create nome_do_pod --imagem=***.
 
-Deployment nginx
+**Deployment nginx**
 ````
 kubectl create deployment nginx --image=nginx
 ````
@@ -274,9 +399,11 @@ O Kubectl envia o comando para criar o Deployment para o KubeAPI dentro do Contr
 
 
 Ao criar um novo deployment, o status do container fica como "ContainerCreating".
+
 ![deployment](imagens/deployment.png)
 
 Após esperar alguns segundos, o status muda para "Running".
+
 ![deployment](imagens/deployment2.png)
 
 Criando Serviço na porta 80 como NodePort.
@@ -284,6 +411,7 @@ Criando Serviço na porta 80 como NodePort.
 kubectl expose deployment nginx --port=80 --type=NodePort
 kubectl get svc
 ````
+
 ![service](imagens/service.png)
 
 
@@ -299,13 +427,18 @@ Agora irei deletar os pods criados.
 Posso verificar se ainda existe algum deployment ou service do nginx com **kubectl get ALL**
 
 Podemos notar que todos pods nginx foram excluídos.
+
 ![service](imagens/delete.png)
+
+-------------------
+
 
 **Deletando CLUSTER KIND**
 
 ````
 kind delete cluster --name meu-cluster
 ````
+
 ![delete](imagens/deletes.png)
 
 Cluster KinD Excluído!
@@ -313,7 +446,7 @@ Cluster KinD Excluído!
 -----------
 ### Criando Cluster personalizados via manifest YAML
 
-Outra forma de trabalhar com o Kind é através de manifest .yaml onde podemos definindo parametros de porta, redes, quantidades de nodes e Workers.
+Outra forma de trabalhar com o Kind é através de manifest **.yaml** onde podemos definir parâmetros de porta, redes, quantidades de nodes e Workers.
 
 Irei criar um novo arquivo .yaml definindo as configurações do Cluster.
 
@@ -340,14 +473,14 @@ nodes:
       - containerPort: 6443
         hostPort: 17445
       - containerPort: 30080
-        hostPort: 30080    # 🔥 necessário para acessar NodePort 30080
+        hostPort: 30080  
 
   - role: worker
 ````
 
 Deploy
 
-Irei realizar o deploy com o comando kind create cluster --name nome_do_cluster --config meu_manifest.yaml
+Irei realizar o deploy com o comando "**kind create cluster --name nome_do_cluster --config meu_manifest.yaml**"
 ````
 kind create cluster --name meu-cluster --config kind-config.yaml
 ````
@@ -396,7 +529,7 @@ kubectl get pods -A
 nano nginx_kubernetes.yaml
 ````
 
-Manifest nginx_kubernetes.yaml
+**Manifest nginx_kubernetes.yaml**
 ````
 # Namespace
 apiVersion: v1
@@ -465,6 +598,9 @@ Com os Pods em Running, o Service está apontando para a porta 30080 e o Type es
 ````
 curl https://127.0.0.1:30080
 ````
+
+Curl retornando a página web do nginx.
+
 ![namespace](imagens/curl.png)
 
 **LEMBRE-SE** - No manifest para deploy do cluster *kind-config.yaml* eu passei o parametro para expor a porta:
@@ -473,7 +609,7 @@ curl https://127.0.0.1:30080
 - containerPort: 30080
         hostPort: 30080  
 ````
-Acesso Web Nginx:
+**Acesso Web Nginx:**
 
 ![namespace](imagens/nginx.png)
 
@@ -481,3 +617,14 @@ Acesso Web Nginx:
 
 
 ----------
+
+
+
+
+
+
+
+
+
+
+
