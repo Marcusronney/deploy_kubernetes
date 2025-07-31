@@ -389,9 +389,10 @@ spec:
 
 -------------------
 
-**Services:** Função de expor os Pods na rede permitindo uma comunicação da rede Externa para dentro da Lan do Cluster.
+# **Services:** 
 
----------
+Services tem a função de expor os Pods na rede permitindo uma comunicação da rede Externa para dentro da Lan do Cluster. Eles são um conjunto de Pods que trabalham para expor outros Pods na rede. Eles são definidos através de Manifest YAML.
+
 
 
 ### **Tipos de Services:**
@@ -407,7 +408,8 @@ spec:
            targetPort: 8080
 
 
--
+
+
 
     NodePort: Geralmente usada entre as portas 30000 - 32767, tem a função de expor o pod para a rede Externa.
 
@@ -422,7 +424,7 @@ spec:
 
 
 
--
+
 
     LoadBalander: Usado para expor aplicações diretamente na Wan como um balanceador de carga. 
 
@@ -434,8 +436,132 @@ spec:
         - port: 80
           targetPort: 8080
 
+    ExternalName: Mapeia o Service para o conteúdo do campo externalName (por exemplo, foo.bar.example.com), retornando um registro CNAME com seu valor.
 
+  
 
+O Service atríbui políticas em um conjunto de Pods para poderem ser acessados, essas políticas são atribuídas por rótulos(**Label Selectors**) dentro do manifest YAML.
+
+### Endpoints
+
+Quando um Service é criado, automaticamente é criado outro objeto dentro do K8s chamado Endpoint, o Endpoint tem a função de rastrear os IPs e Ports dos Pods que correspondem ao rótulo declarado no Service.
+
+Para visualizar o Endpoint:
+````
+kubectl get endpoints meu-service
+````
+
+Verificar todos EndPoints de Todos Services.
+````
+kubectl get endpoints -A
+````
+### Criando Service
+
+O Service pode ser criado tanto na linha de comando quanto via manifest YAML.
+
+**CusterIP**
+
+Exemplo de criação de um Service do tipo ClusterIP via linha de Comando:
+````
+kubectl expose deployment meu-deployment --port=80 --target-port=8080
+````
+
+Manifest YAML do comando acima:
+````
+apiVersion: v1
+kind: Service # Tipo do objeto, no caso, um Service
+metadata:
+  name: meu-service
+spec:
+  selector: # Seleciona os Pods que serão expostos pelo Service
+    app: meu-app # Neste caso, os Pods com o label app=meu-app
+  ports:
+    - protocol: TCP
+      port: 80 # Porta do Service
+      targetPort: 8080 # Porta dos Pods
+````
+
+Este arquivo YAML irá criar um serviço que corresponde aos Pods com o label app=meu-app, e encaminha o tráfego da porta 80 do serviço para a porta 8080 dos Pods. 
+
+Perceba que estou usando o selector para definir quais Pods serão expostos pelo Service.
+
+**NodePort**
+
+Para ter um Service NodePort é necessário ter as portas entre 30000 e 32767.
+
+````
+kubectl expose deployment meu-deployment --type=NodePort --port=80 --target-port=8080
+````
+
+````
+apiVersion: v1
+kind: Service
+metadata:
+  name: meu-service
+spec:
+  type: NodePort # Tipo do Service
+  selector:
+    app: meu-app
+  ports:
+    - protocol: TCP
+      port: 80 # Porta do Service, que será mapeada para a porta 8080 do Pod
+      targetPort: 8080 # Porta dos Pods
+      nodePort: 30080   # Porta do Node, que será mapeada para a porta 80 do Service
+````
+
+**LoadBalancer**
+
+LoadBalancer é uma das melhores formas de expor uma aplicação para internet, quando deployado, automaticamente é criado um balanceador de carga expondo o Kubernetes.
+
+LoadBalancer via CLI:
+````
+kubectl expose deployment meu-deployment --type=LoadBalancer --port=80 --target-port=8080
+````
+
+LoadBalancer YAML:
+````
+apiVersion: v1
+kind: Service
+metadata:
+  name: meu-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: meu-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+````
+
+Verificando Services de um Cluster:
+````
+kubectl get services
+````
+
+![serv](imagens/servicekube.png)
+
+Verificando Services de uma Namespace: 
+````
+kubectl get services -n kube-system
+````
+
+![serv](imagens/namespaceser.png)
+
+Todas os Services de todas namespace:
+`````
+kubectl get services -A
+````
+
+Todos detalhes do Service:
+````
+kubectl describe service meu-service
+````
+
+Removendo o Service:
+````
+kubectl delete service meu-service
+````
 
 **Portas K8s**
 ````
@@ -1120,6 +1246,193 @@ Agora posso usar o **Describe** para visualizar se o Pod está usando o volume c
 
 ````
 kubectl describe pod nginx-pod
+````
+
+
+
+
+----------------------------
+
+
+# StatefulSet
+
+O StatefulSet tem a função de gerenciar os deployment e o scaling de um conjunto Pods, garantindo a ordem de Deployment e a singularidade dos Pods, dando mais segurança para aplicações de longo prazo.
+
+Aplicações que usam StatefulSet:
+````
+Identidade de rede estável e única.
+Armazenamento persistente estável.
+Ordem de deployment e scaling garantida.
+Ordem de rolling updates e rollbacks garantida.
+Algumas aplicações que se encaixam nesses requisitos são bancos de dados, sistemas de filas e quaisquer aplicativos que necessitam de persistência de dados ou identidade de rede estável.
+````
+
+**Funcionamento**: StatefulSet funciona criando um lote de Pods replicados em que cada réplica é uma instância da mesma aplicação que é criada a parti do mesmo **spec:**. Mesmo compartilhamendo o mesmo **spec:** eles podem conter índices e hostnames diferentes.
+
+Exemplo: Um StatefulSet com nome Nginx e um **spec** com 3 réplicas, será criado os Pods: Nginx-0, Nginx-1, Nginx-2. O pod Nginx-1 não será iniciado até que o Pods Nginx-0 esteja pronto.
+
+Isso é útil para aplicações que precisam de um armazenamento persistente e estável, como bancos de dados.
+
+
+### Headless Services
+
+Headless Service funciona junto ao StatefulSet, ele funciona como um Service que ao invés de criar IPs Lógicos para e entregar para os Pods, ele encaminha o tráfego diratamente para os Pods que possuem IP associados a ele. Quando um StatefulSet cria os Pods, o Headless entra em ação criando um serviço de gerenciamento de DNS.
+
+Cada Pod obtém um DNS com formato "<pod-name>.<service-name>.<namespace>.svc.cluster.local" assim os Pods conseguem ser roteados individualmente.
+
+**Exemplo:** 3 Pods nginx são criados com StatefulSet, nginx-0, nginx-1 e nginx-2, logo o Headless Service irá entrar em ação criando rotas para cada Pod individualmente:
+````
+nginx-0.nginx.default.svc.cluster.local
+nginx-1.nginx.default.svc.cluster.local
+nginx-2.nginx.default.svc.cluster.local
+````
+
+Essa combinação de StatefulSets com Headless Services permite que aplicações stateful, como bancos de dados, tenham uma identidade de rede estável e previsível, facilitando a comunicação entre diferentes instâncias da mesma aplicação.
+
+### Criando um StatefulSet
+
+
+````
+nano nginx-statefulset.yaml
+````
+
+nginx-statefulset.yaml
+````
+apiVersion: apps/v1
+kind: StatefulSet # Tipo do recurso que estamos criando, no caso, um StatefulSet
+metadata:
+  name: nginx
+spec:
+  serviceName: "nginx"
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+          name: web
+        volumeMounts:
+        - name: www
+          mountPath: /usr/share/nginx/html
+  volumeClaimTemplates: # Como estamos utilizando StatefulSet, precisamos criar um template de volume para cada Pod, entã ao invés de criarmos um volume diretamente, criamos um template que será utilizado para criar um volume para cada Pod
+  - metadata:
+      name: www # Nome do volume, assim teremos o volume www-0, www-1 e www-2
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+````
+
+````
+kubectl apply -f nginx-statefulset.yaml
+````
+
+![pvc](imagens/stateapply.png)
+
+
+
+Verificando StatefulSet:
+````
+kubectl get statefulset
+````
+
+![state](imagens/stateget.png)
+
+
+### Criando Headless Service
+
+Após criar o StatefulSet, irei prosseguir para o headless Service criando o menifest YAML.
+
+````
+nano nginx-headless-service.yaml
+````
+
+nginx-headless-service.yaml
+````
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx
+  labels:
+    app: nginx
+spec:
+  ports:
+  - port: 80
+    name: web
+  clusterIP: None # Como estamos criando um Headless Service, não queremos que ele tenha um IP, então definimos o clusterIP como None
+  selector:
+    app: nginx
+````
+
+Aplicando:
+````
+kubectl apply -f nginx-headless-service.yaml
+````
+
+![state](imagens/servicehead.png)
+
+
+
+Com **kubectl get pods -A** eu consigo visualizar os Pods criados.
+
+![state](imagens/podsstate.png)
+
+
+Agora irei entrar em um novo Pod com o comando **kubectl run -it --rm debug --image=busybox --restart=Never -- sh** e testar o DNS dos Pods Nginx criados.
+
+Ao enviar uma requisição DNS eu recebo o Retorno dos Pods. Cada pod respondeu o DNS com IP 10.244.x.x.
+
+![state](imagens/dnspod.png)
+
+
+Acessando o Nginx através do DNS **wget -O- nginx-0.nginx.default.svc.cluster.local**
+
+
+![state](imagens/nginxdns.png)
+
+Nginx rodando, porém como não possuí nenhum conteúdo em */usr/share/nginx/html/* irei gerar um html de teste.
+
+Irei acessar o nginx-o e inserir uma mensagem no html do nginx.
+
+````
+kubectl exec -it nginx-0 -- sh
+echo "Olá de nginx-0" > /usr/share/nginx/html/index.html
+````
+
+![state](imagens/wget.png)
+
+Retorno com sucesso!
+
+
+Deletando StatefulSet:
+````
+kubectl delete statefulset nginx
+````
+ou
+````
+kubectl delete -f nginx-statefulset.yaml
+````
+
+Excluindo Headless Service:
+````
+kubectl delete service nginx
+````
+ou
+````
+kubectl delete -f nginx-headless-service.yaml
+````
+Excluindo PVC:
+````
+kubectl delete pvc www-0
 ````
 
 
