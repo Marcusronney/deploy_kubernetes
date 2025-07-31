@@ -222,6 +222,7 @@ Posso também verificar todos os Pods que o Deployment está gerenciando.
 ````
 kubectl get pods -l app=nginx-deployment
 ````
+
 ![nginx](imagens/nginx2.png)
 
 ----------------------
@@ -893,6 +894,235 @@ kubectl get pv
 Visualizando os detalhes do PV
 `````
 kubectl describe pv meu-pv
-````
+`````
+O PV utiliza o **host
 
 ![pv](imagens/pv4.png)
+
+### VOLUME NFS com Persistent Volume
+
+Para adicionar um volume NFS no cluster, irei criar um diretório compartilhado com os nodes do cluster em */etc/nfs*. 
+
+Criando diretório NFS:
+````
+mkdir /mnt/nfs
+````
+
+OBS: Os pacotes *nfs-kernel-server* e *nfs-common* são necessários para o NFS funcionar.
+````
+sudo yum install nfs-utils
+
+````
+````
+sudo systemctl enable --now rpcbind
+sudo systemctl enable --now nfs-server
+sudo systemctl enable --now nfs-mountd
+sudo systemctl enable --now nfs-idmapd
+````
+
+Para configura o NFS teremos que editar o arquivo */etc/exports*
+````
+nano /etc/exports
+````
+````
+/mnt/nfs *(rw,sync,no_root_squash,no_subtree_check)
+````
+
+````
+/mnt/nfs: é o diretório que você deseja compartilhar.
+
+*: permite que qualquer host acesse o diretório compartilhado. Para maior segurança, você pode substituir * por um intervalo de IPs ou por IPs específicos dos clientes que terão acesso ao diretório compartilhado. Por exemplo, 192.168.1.0/24 permitiria que todos os hosts na sub-rede 192.168.1.0/24 acessassem o diretório compartilhado.
+
+rw: concede permissões de leitura e gravação aos clientes.
+
+sync: garante que as solicitações de gravação sejam confirmadas somente quando as alterações tiverem sido realmente gravadas no disco.
+
+no_root_squash: permite que o usuário root em um cliente NFS acesse os arquivos como root. Caso contrário, o acesso seria limitado a um usuário não privilegiado.
+
+no_subtree_check: desativa a verificação de subárvore, o que pode melhorar a confiabilidade em alguns casos. A verificação de subárvore normalmente verifica se um arquivo faz parte do diretório exportado.
+````
+
+Adicinando o diretório ao NFS:
+````
+exportfs -arv
+````
+![pv](imagens/export.png)
+
+
+Exibindo o ponto de montagem:
+````
+showmount -e
+````
+![pv](imagens/shownfs.png)
+
+
+**NFS FUNCIONANDO**
+
+### StorageClass para provisionar NFS e associnar ao PV
+
+Irei criar um manifest YAML para provisionar o NFS no cluster.
+
+````
+nano storageclass-nfs.yaml
+````
+
+storageclass-nfs.yaml
+````
+apiVersion: storage.k8s.io/v1 # Versão da API do Kubernetes
+kind: StorageClass # Tipo de objeto que estamos criando, no caso um StorageClass
+metadata: # Informações sobre o objeto
+  name: nfs # Nome do nosso StorageClass
+provisioner: kubernetes.io/no-provisioner # Provisionador que será utilizado para criar o PV
+reclaimPolicy: Retain # Política de reivindicação do PV, ou seja, o PV não será excluído quando o PVC for excluído
+volumeBindingMode: WaitForFirstConsumer
+parameters: # Parâmetros que serão utilizados pelo provisionador
+  archiveOnDelete: "false" # Parâmetro que indica se os dados do PV devem ser arquivados quando o PV for excluído
+````
+
+````
+kubectl apply -f storageclass.yaml
+````
+
+![pv](imagens/storagenfs.png)
+
+StorageClass criado, irei criar outro manifesto para associnar ao PV.
+
+````
+nano pv-nfs.yaml
+````
+
+`````
+apiVersion: v1 # Versão da API do Kubernetes
+kind: PersistentVolume # Tipo de objeto que estamos criando, no caso um PersistentVolume
+metadata: # Informações sobre o objeto
+  name: meu-pv-nfs # Nome do nosso PV
+  labels:
+    storage: nfs # Label que será utilizada para identificar o PV
+spec: # Especificações do nosso PV
+  capacity: # Capacidade do PV
+    storage: 1Gi # 1 Gigabyte de armazenamento
+  accessModes: # Modos de acesso ao PV
+    - ReadWriteOnce # Modo de acesso ReadWriteOnce, ou seja, o PV pode ser montado como leitura e escrita por um único nó
+  persistentVolumeReclaimPolicy: Retain # Política de reivindicação do PV, ou seja, o PV não será excluído quando o PVC for excluído
+  nfs: # Tipo de armazenamento que vamos utilizar, no caso o NFS
+    server: IP_DO_SERVIDOR_NFS # Endereço do servidor NFS
+    path: "/mnt/nfs" # Compartilhamento do servidor NFS
+  storageClassName: nfs # Nome da classe de armazenamento que será utilizada
+`````
+
+Aplicando:
+````
+kubectl apply -f pv-nfs.yaml
+````
+
+![pv](imagens/applypvc.png)
+
+**PV Criado!***
+
+### PVC - Persistent Volume Claim
+
+O PVC é uma solicitação de armazenamento feita pelos usuários ou aplicações do cluster. O PVC funciona como uma "assinatura" que reivindica um PV para ser usuado por algum contêiner. O K8s sempre irá tentar associar um PVC a um PV compatível automaticamente para que os dados sejam alocados corretamente.
+
+Todo PVC é associado a um Storage Class ou a um Persistent Volume. O Storage Class irá dizer qual tipo de armazenamento e o Persistent Volume irá dizer quem é o dispositivo.
+
+
+Irei criar um objeto PVC:
+
+````
+nano pvc.yaml
+````
+
+pvc.yaml
+````
+apiVersion: v1 # versão da API do Kubernetes
+kind: PersistentVolumeClaim # tipo de recurso, no caso, um PersistentVolumeClaim
+metadata: # metadados do recurso
+  name: meu-pvc # nome do PVC
+spec: # especificação do PVC
+  accessModes: # modo de acesso ao volume
+    - ReadWriteOnce # modo de acesso RWO, ou seja, somente leitura e escrita por um nó
+  resources: # recursos do PVC
+    requests: # solicitação de recursos
+      storage: 1Gi # tamanho do volume que ele vai solicitar
+  storageClassName: nfs # nome da classe de armazenamento que será utilizada
+  selector: # seletor de labels
+    matchLabels: # labels que serão utilizadas para selecionar o PV
+      storage: nfs # label que será utilizada para selecionar o PV
+````
+
+Aplicando:
+````
+kubectl apply -f pvc.yaml
+````
+
+![pvc](imagens/pvc3.png)
+
+
+
+Conferindo PVC:
+````
+kubectl get pvc
+````
+
+![pvc](imagens/pvc2.png)
+
+O PVC ficou com status em "Pedding" pois não possuí nenhum Pod vinculado, ele está esperando alguma conexão.
+
+Vou criar um Pod e vincular ao PVC.
+
+
+pod-pvc.yaml
+````
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nginx-pod
+spec:
+  containers:
+  - name: nginx
+    image: nginx:latest
+    ports:
+    - containerPort: 80
+    volumeMounts:
+    - name: meu-pvc
+      mountPath: /usr/share/nginx/html
+  volumes:
+  - name: meu-pvc
+    persistentVolumeClaim:
+      claimName: meu-pvc
+````
+
+````
+kubectl apply -f pod-pvc.yaml
+````
+
+Verificando novamente o PVC e PV.
+
+`````
+kubectl get pvc
+`````
+
+Agora o PVC está vinculado.
+
+![pvc](imagens/getpvc.png)
+
+
+````
+kubectl get pv
+````
+O Status do PV também está como Vinculado
+
+![pvc](imagens/getpv.png)
+
+
+Agora posso usar o **Describe** para visualizar se o Pod está usando o volume correto.
+
+
+````
+kubectl describe pod nginx-pod
+````
+
+
+
+
+
