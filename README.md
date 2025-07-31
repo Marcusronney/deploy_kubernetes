@@ -551,7 +551,7 @@ kubectl get services -n kube-system
 Todas os Services de todas namespace:
 `````
 kubectl get services -A
-````
+`````
 
 Todos detalhes do Service:
 ````
