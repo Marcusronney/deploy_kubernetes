@@ -17,7 +17,9 @@ Um Cluster K8s segue o modelo construido por control plane / workers, onde o con
 
 ## Cluster
 
-Um Cluster Kubernetes é um conjunto de nodes(nós) que trabalham em conjunto para executar os Pods.
+Um Cluster Kubernetes é um conjunto de computadores (físicos ou virtuais) que trabalham juntos para executar e gerenciar aplicações containerizadas em grande escala.
+
+Esses computadores são chamados de nodes (nós), e eles executam unidades chamadas pods, que por sua vez contêm os containers onde as aplicações rodam.
 
 O Cluster é composto por Nodes que podem ser tanto **control plane** quanto **workers**. 
 
@@ -51,7 +53,7 @@ Os worker nodes são os servidores que rodam os containers da aplicação (ou se
 
 
 
-arquitetura
+**Arquitetura**
 ````
 [Control Plane]
 ├─ kube-apiserver       ← Interface de controle
@@ -81,7 +83,6 @@ kubectl apply -f app.yaml ───▶ kube-apiserver ───▶ etcd (salva e
                        kube-proxy gerencia o tráfego para os pods
 ````
 
-# Cluster
 
 
 
@@ -140,7 +141,7 @@ spec:
 
 **Explicação:**
 
-No campo **Kind:** estou definindo o tipo de objeto como Deploymeny e a versão da API em **apiVersion:**
+No campo **Kind:** estou definindo o tipo de objeto como *Deploymeny* e a versão da API em **apiVersion:**
 ````
 apiVersion: apps/v1
 kind: Deployment
@@ -169,7 +170,7 @@ selector:
 
 Este campo **strategy** defini qual estratégia será usada para Update dos Pods, quando vázio **{}** a estratégia definida por padrão é **RollingUpdate**.
 
-**RllingUpdate** é utilizada para atualizar os Pods de um Deployment de forma gradual, ou seja, ela atualiza um Pod por vez, ou um grupo de Pods por vez.
+**RollingUpdate** é utilizada para atualizar os Pods de um Deployment de forma gradual, ou seja, ela atualiza um Pod por vez, ou um grupo de Pods por vez.
 ````
 strategy: {}
 ````
@@ -229,7 +230,7 @@ kubectl get pods -l app=nginx-deployment
 
 ### **ReplicaSets:** 
 
-Responsável por garantir a quantidade de Pods em execução dentro do **nó**. Ao criar um deployment, atumaticamente um ReplicaSet é criado e esse ReplicaSet irá criar os Pods listados dentro do Deployment.
+Responsável por garantir a quantidade de Pods em execução dentro do **nó**. Ao criar um deployment, automaticamente um ReplicaSet é criado e esse ReplicaSet irá criar os Pods listados dentro do Deployment.
 
 **Listando os Pods do ReplicaSet criados pelo Deployment nginx-deployment**
 ````
@@ -619,7 +620,7 @@ Desligando swap (recomendo em ambientes K8s)
 sudo swapoff -a
 ````
 
-Rode ***kind version*** para verificar a instalação.
+Rode "***kind version***" para verificar a instalação.
 
 ![Docker](imagens/kindversion.png)
 
@@ -658,7 +659,7 @@ kind get clusters
 ![docker](imagens/clusters.png)
 
 
-Como o KinD utiliza Docker, com o comando "**Docker ps**" podemos visualizar o container criado.
+Como o KinD utiliza Docker, com o comando "**Docker ps**" posso visualizar o container criado.
 
 ![docker](imagens/dockerps.png)
 
@@ -687,27 +688,28 @@ Aqui posso ver todos os Pods em Status "Running" no meu cluster.
 
 ![kind](imagens/pods.png)
 
-````
-Pod	Função
-coredns-xxxx	Resolve nomes DNS dentro do cluster
-etcd-meu-cluster-control-plane	Banco de dados do cluster
-kube-apiserver-meu-cluster...	API do cluster
-kube-controller-manager-...	Controla estados de recursos
-kube-scheduler-...	Decide onde rodar pods
-kube-proxy	Roteamento de rede
-kindnet	Plugin de rede (CNI) usado pelo Kind
-local-path-provisioner	Provisionador de volumes persistentes localmente
-````
+| Pod                              | Função                                                |
+|----------------------------------|--------------------------------------------------------|
+| `coredns-xxxx`                   | Resolve nomes DNS dentro do cluster                   |
+| `etcd-meu-cluster-control-plane` | Banco de dados do cluster                             |
+| `kube-apiserver-meu-cluster...`  | API do cluster                                        |
+| `kube-controller-manager-...`    | Controla estados de recursos                          |
+| `kube-scheduler-...`             | Decide onde rodar pods                                |
+| `kube-proxy`                     | Roteamento de rede                                    |
+| `kindnet`                        | Plugin de rede (CNI) usado pelo Kind                  |
+| `local-path-provisioner`         | Provisionador de volumes persistentes localmente      |
+
 
 **Cluster Rodando!**
 
-Agora irei instalar uma aplicação do nginx como teste de deployment com o comando ***kubectl create nome_do_pod --imagem=***.
+### Primeiro Deploy no Cluster
+Agora irei instalar uma aplicação do nginx como teste de deployment com o comando "***kubectl create nome_do_pod --imagem=***".
 
 **Deployment nginx**
 ````
 kubectl create deployment nginx --image=nginx
 ````
-Ao utilizar ***kubectl create*** o container nginx é baixado diretamente do Docker Hub, que é o repositório público padrão de imagens Docker. Ao passar parametro "--image=nginx" a imagem será buscada em "*docker.io/library/nginx:latest*".
+Ao utilizar "***kubectl create***" o container nginx é baixado diretamente do Docker Hub, que é o repositório público padrão de imagens Docker. Ao passar parametro "--image=nginx" a imagem será buscada em "*docker.io/library/nginx:latest*".
 
 O Kubectl envia o comando para criar o Deployment para o KubeAPI dentro do Control-plane, o control-plane envia a solicitação para o Kubelet receber dentro do Worker. Após a requisição ser recebida, o container runtime irá começar a baixar a imagem direto do Docker Hub.
 
@@ -723,6 +725,7 @@ Após esperar alguns segundos, o status muda para "Running".
 Criando Serviço na porta 80 como NodePort.
 ````
 kubectl expose deployment nginx --port=80 --type=NodePort
+
 kubectl get svc
 ````
 
@@ -733,10 +736,15 @@ Aplicação Deployada e Service criados com sucesso!
 
 Agora irei deletar os pods criados.
 
-**Deletando deployment:** kubectl delete deployment nginx  
+**Deletando deployment:** 
+````
+kubectl delete deployment nginx  
+````
 
-**Deletando service:** kubectl delete service nginx  
-
+**Deletando service:** 
+````
+kubectl delete service nginx  
+````
 
 Posso verificar se ainda existe algum deployment ou service do nginx com **kubectl get ALL**
 
@@ -758,7 +766,7 @@ kind delete cluster --name meu-cluster
 Cluster KinD Excluído!
 
 -----------
-### Criando Cluster personalizados via manifest YAML
+### Criando Cluster personalizado via manifest YAML
 
 Outra forma de trabalhar com o Kind é através de manifest **.yaml** onde podemos definir parâmetros de porta, redes, quantidades de nodes e Workers.
 
@@ -769,17 +777,17 @@ nano kind-config.yaml
 ````
 kind-config.yaml
 ````
-kind: Cluster
-apiVersion: kind.x-k8s.io/v1alpha4
-networking:
+kind: Cluster #Definindo como Cluster
+apiVersion: kind.x-k8s.io/v1alpha4 #Atacando a API
+networking: #aqui estou personalizando a rede do cluster
   apiServerAddress: "192.168.2.63"  # IP do host físico
-  apiServerPort: 17443
-  podSubnet: "10.244.0.0/16"
-  serviceSubnet: "10.96.0.0/12"
+  apiServerPort: 17443 #porta
+  podSubnet: "10.244.0.0/16" #Rede dos Pods
+  serviceSubnet: "10.96.0.0/12" #Rede dos Services
 
 nodes:
-  - role: control-plane
-    extraPortMappings:
+  - role: control-plane #Define o node como Master
+    extraPortMappings: # as Portas abaixo define um roteamento do Servidor para dentro do cluster
       - containerPort: 80
         hostPort: 80
       - containerPort: 443
@@ -789,10 +797,20 @@ nodes:
       - containerPort: 30080
         hostPort: 30080  
 
-  - role: worker
+  - role: worker #Nó onde executará os Pods
 ````
 
-Deploy
+Detalhe: No campo "**apiVersion: kind.x-k8s.io/v1alpha4**" estou atacando a API do K8S. Para mais detalhes sobre a API, rode:
+````
+kubectl api-resources
+````
+
+
+![Kind](imagens/api.png)
+
+
+
+**Deploy**
 
 Irei realizar o deploy com o comando "**kind create cluster --name nome_do_cluster --config meu_manifest.yaml**"
 ````
@@ -803,6 +821,9 @@ kind create cluster --name meu-cluster --config kind-config.yaml
 
 ![Kind](imagens/kind2.png)
 
+Meus 2 Nodes foram criados com sucesso!
+
+![node](imagens/nodes2.png)
 
 
 ----------------------
@@ -838,6 +859,8 @@ kubectl get pods -A
 -----------------------------------
 
 ### Deploy Nginx no Cluster via manifest YAML
+
+Agora irei criar um manifest incluindo Namespace, Deployment e Service.
 
 ````
 nano nginx_kubernetes.yaml
@@ -894,6 +917,7 @@ spec:
 ````
 kubectl apply -f nginx_kubernetes.yaml
 ````
+
 ![namespace](imagens/deploynginx.png)
 
 Com o comando **kubectl get all -n nginx** eu posso visualizar todos os pods da namespace nginx.
@@ -903,6 +927,7 @@ kubectl get all -n nginx
 ````
 
 **Deployment** e **Services** nginx criados com sucesso.
+
 ![namespace](imagens/allnginx.png)
 
 
@@ -927,6 +952,8 @@ Curl retornando a página web do nginx.
 
 ![namespace](imagens/nginx.png)
 
+Aplicação Deployada e acessada com sucesso! Agora irei mencionar algumas outras aplicações importantes de um Cluster Kubernetes.
+
 ----------
 
 # Volumes no Kubernetes
@@ -937,6 +964,8 @@ Os Volumes no Kubernetes são diretórios dentro do Pod utilizados para armazena
 
 **Persistent** = São volumes que são criados e não são destruídos quando o Pod morre, eles são persistidos e os dados são mantidos mesmo quando o Pod é excluído.
 
+
+![storageclass](imagens/kubernetes-volumes-pvc-to-pod.jpg)
 
 
 ## Volumes Storage Class
@@ -965,6 +994,8 @@ kubectl describe storageclass standard
 
 
 ## PV - Persistent Volume
+
+![storageclass](imagens/pvcima.png)
 
 PV é um objeto no K8s que representa um armazenamento físico dentro do cluster. Ele pode ser um HD, SSD, NAS ou algum serviço Cloud como, por exemplo o AWS EBS.
 
@@ -1434,6 +1465,350 @@ Excluindo PVC:
 ````
 kubectl delete pvc www-0
 ````
+
+
+# Deployament Detalhado - Aplicação Giropops-Senhas
+
+[Giropops-Senhas](https://github.com/badtuxx/giropops-senhas) é uma aplicação construída pela [LinuxTips](https://https://linuxtips.io/) que tem a função de ser um Criador de senhas. A aplicação roda em Docker e foi escrita em Python usando banco de dados Redis. 
+
+Irei demostrar como realizar o Deploy do Giropops-Senhas dentro do Kubernetes usando KinD.
+
+Como o projeto Giropops-Sebgas é Docker, irei utilizar uma imagem já Buildada armazenada no Docker Hub, o Build foi realizado com Melange + APKO, no repositório [Desafio PICK](https://github.com/badtuxx/giropops-senhas) eu demostro como efetuei o processo.
+
+Imagem: https://hub.docker.com/u/geforce8400gsd
+
+### Manifests Giropops-Senhas
+
+A aplicação requer 2 Deploymets e 2 Services, 2 manifest da aplicação e 2 manifest do Redis.
+
+
+---------------
+giropops-deployment.yaml
+````
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: giropops-senhas
+  name: giropops-senhas
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: giropops-senhas
+  template:
+    metadata:
+      labels:
+        app: giropops-senhas
+    spec:
+      containers:
+      - image: geforce8400gsd/giropops-senhas:latest
+        name: giropops-senhas
+        env:
+        - name: REDIS_HOST
+          value: redis-service
+        ports:
+        - containerPort: 5000
+````
+
+**Explicação:**
+
+Estou atacando a API do K8s e definindo o manifest como Deployment
+````
+apiVersion: apps/v1
+kind: Deployment
+````
+
+
+Estou definindo o nome do Cluster e definindo um rótulo de giropops-senhas, assim outras aplicações irão se conectar ao Deployment.
+````
+metadata:
+  labels:
+    app: giropops-senhas
+  name: giropops-senhas
+````
+
+Estou definindo 1 réplica.
+````
+spec:
+  replicas: 1
+````
+
+Estou definindo que este Deployment irá gerenciar os pods com o rótulo "*giropops-senhas*".
+````
+  selector:
+    matchLabels:
+      app: giropops-senhas
+````
+
+Estou inserindo os metadas para os Pods que serão criados, o Pod terá o rótulo "*giropops-senhas*", assim o próprio Deployment irá gerenciar.
+````
+  template:
+    metadata:
+      labels:
+        app: giropops-senhas
+````
+Estou definindo que os Pods terão a imagem "geforce8400gsd/giropops-senhas:latest" e o nome do Container.
+````
+    spec:
+      containers:
+      - image: geforce8400gsd/giropops-senhas:latest
+        name: giropops-senhas
+````
+
+A Aplicação precisa se conectar ao Banco de Dados Redis, o valor "redis-service" indica o Service que irá fazer a comunicação.
+````
+        env:
+        - name: REDIS_HOST
+          value: redis-service
+````
+
+Porta do Container.
+````
+        ports:
+        - containerPort: 5000
+````
+
+
+-------------------
+
+Service do deployment, ele irá definir um NodePort para a aplicação.
+
+giropops-service.yaml
+````
+apiVersion: v1
+kind: Service
+metadata:
+  name: giropops-senhas-service
+spec:
+  type: NodePort
+  selector:
+    app: giropops-senhas
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000
+    nodePort: 32000  
+````
+
+Definindo como um Service.
+````
+apiVersion: v1
+kind: Service
+````
+
+Definindo um nome nos metadados.
+````
+metadata:
+  name: giropops-senhas-service
+````
+
+Definindo como *NodePort* e define o parâmetro *"giropops-senhas"* para se conectar ao Deployment.
+````
+spec:
+  type: NodePort
+  selector:
+    app: giropops-senhas
+````
+
+Definindo as Portas exportas.
+````
+  ports:
+  - protocol: TCP
+    port: 5000
+    targetPort: 5000
+    nodePort: 32000
+````
+
+
+
+
+-------------------
+
+Service do Banco de dados Redis que a aplicação irá usar.
+
+redis-serive.yaml
+````
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+spec:
+  selector:
+    app: redis
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+  type: ClusterIP
+````
+Definindo como Service.
+````
+apiVersion: v1
+kind: Service
+````
+
+Nome do service.
+````
+metadata:
+  name: redis-service
+````
+
+Definindo o rótulo "redis", assim todos os pods com este nome serão encaminhados o tráfego.
+
+````
+spec:
+  selector:
+    app: redis
+````
+
+Definindo as Portas. "*port:6379*" é por onde os clientes irão se conectar. "*targetport:6379*" é a porta em que o Redis irá escutar. "*protocol: TCP*" define o protocolo de Rede como TCP.
+````
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: 6379
+````
+Definindo como ClusterIP, apenas Pods internos irão se conectar ao Redis.
+````
+type: ClusterIP
+````
+
+
+--------------------
+
+Deployment do Redis.
+
+redis-deployment.yaml
+````
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: redis
+  name: redis-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - image: redis
+        name: redis
+        ports:
+          - containerPort: 6379
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+````
+
+Definindo como Deployment.
+````
+apiVersion: apps/v1
+kind: Deployment
+````
+
+Metadados para definir nome e rótulo.
+````
+metadata:
+  name: redis-deployment
+  labels:
+    app: redis
+````
+
+Definindo número de réplicas para 1 e "*matchLabels*" como **redis**, assim todo pod com este rótulo será gerenciado por este deployment.
+````
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+````
+
+Template dos Pods que serão criados. Os rótulos batem com o do Deployemnt acima.
+````
+  template:
+    metadata:
+      labels:
+        app: redis
+````
+
+Definindo a imagem do Redis, assim o deployment irá buscar a imagem "redis" no Docker Hub.
+
+````
+    spec:
+      containers:
+      - image: redis
+        name: redis
+````
+
+Definindo que o Redis irá usar a porta 6379.
+````
+        ports:
+          - containerPort: 6379
+````
+
+Definindo o limite de Hardware para os Pods, *request* são o mínimo garantido para os Pods e *limits* são o máximo que os Pods podem usar de memória e CPU.
+````
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+          requests:
+            memory: "128Mi"
+            cpu: "250m"
+````
+
+
+---------------------------
+
+
+Aplicando os manifest:
+````
+kubectl apply -f giropops-deployment.yaml
+kubectl apply -f giropops-service.yaml
+kubectl apply -f redis-deployment.yaml
+kubectl apply -f redis-serive.yaml
+````
+
+![k8s](imagens/applyk8s.png)
+
+
+Verificando Deployment:
+
+````
+kubectl get deployments -A
+````
+Deployments criados com sucesso.
+
+Meu Deployment está com nome "giropops-senhas" e a namespace "dafault" pois eu não defini nenhuma.
+
+![k8s](imagens/deploymentk.png)
+
+
+Verificando Service:
+
+````
+kubectl get service -A
+````
+Services criados com sucesso.
+
+Service com nome "giropops-senhas-services" rodando como NodePort com a porta 5000:32000.
+
+![k8s](imagens/servicek.png)
+
+
+
+
 
 
 
