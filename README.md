@@ -1807,7 +1807,20 @@ Service com nome "giropops-senhas-services" rodando como NodePort com a porta 50
 ![k8s](imagens/servicek.png)
 
 
+**Acessando a Aplicação!**
 
+O NodePort do Kubernetes foi exposto dentro do container KIND, que usa rede Docker interna (172.19.0.x). Isso significa que terei que usar o comando **Port-Foward** para criar um túnel para dentro do Node.
+
+Port-Foward:
+````
+kubectl port-forward deployment/giropops-senhas 5000:5000
+````
+
+![k8s](imagens/port-foward.png)
+
+Aplicação Buildada e acessada no Kubernetes com sucesso.
+
+![k8s](imagens/aplicacao_kubernetes.png)
 
 
 
