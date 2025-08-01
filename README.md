@@ -1,8 +1,10 @@
 # deploy_kubernetes
 
-**Kubernetes (K8S)**
+Este repositório tem como objetivo apresentar o funcionamento do Kubernetes de forma direta e prática, demonstrando também como realizar o deploy de algumas aplicações. Antes de avançar para o processo de deploy, serão listadas as principais funcionalidades do Kubernetes.
 
- Antes de iniciarmos, resumo - O que é Kubernetes?
+![Arquitetura Kubernetes](imagens/kubernetes.png)
+
+ Antes de iniciarmos o deploy - **O que é Kubernetes**?
 
 Desenvolvida pela Google em 2014 e mantido pela CNCF (Cloud Native Computing Foundation), Kubernetes (também chamado de K8s) é uma plataforma de código aberto criado com objetivo de ser um orquestrador de containers, automatizando a implantação, o escalonamento e a gestão de aplicações em containers.
 
@@ -23,13 +25,13 @@ Esses computadores são chamados de nodes (nós), e eles executam unidades chama
 
 O Cluster é composto por Nodes que podem ser tanto **control plane** quanto **workers**. 
 
-Uma ótimoa analogia seria uma orquestra, onde temos uma pessoa regendo a orquestra, que é o control plane, e temos as pessoas musicistas, que estão executando os instrumentos, que são os workers.
+Uma ótima analogia seria uma orquestra, onde temos uma pessoa regendo a orquestra, que é o control plane, e temos as pessoas musicistas, que estão executando os instrumentos, que são os workers.
 
 -----
 
 **Control-plane:** Controle do Cluster!
 
-O Control Plane é o cérebro do cluster Kubernetes. Ele gerencia o estado desejado de todo ocluster, ou seja, define o que deve estar rodando, onde, como e quando.
+O **Control Plane** é o cérebro do cluster Kubernetes. Ele gerencia o estado desejado de todo ocluster, ou seja, define o que deve estar rodando, onde, como e quando.
 
 Dentro do **control-plane** possuímos outros componentes:
 
