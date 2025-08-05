@@ -336,9 +336,193 @@ As Probes são dividas em 3 tipos: **LivenessProbe**, **ReadinessProbe** e **Sta
 
 A LivenessProble é responsável por verificar a integridade do Pod, através dela é possível ver oque está rodando dentro do Pod e se está respondendo conforme o esperado.
 
+**Exemplo LivenessProbe:
+
+nginx-liveness.yaml
+````
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-deployment
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-deployment
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: nginx-deployment
+    spec:
+      containers:
+      - image: nginx:1.19.2
+        name: nginx
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: 256Mi
+          requests:
+            cpu: 0.25
+            memory: 128Mi
+        livenessProbe: # definindo Probe como livenessProbe
+          tcpSocket: # conecta o container via TCP
+            port: 80 # atacando a porta 80
+          initialDelaySeconds: 10 # Tempo para executar a primeira verificação
+          periodSeconds: 10 # Tempo de repetição
+          timeoutSeconds: 5 # se o container não responder neste tempo, irá ser marcado como Falha.
+          failureThreshold: 3 # Quantos falhas consecutivas vamos aceitar antes de reiniciar o container
+````
+
+Apply
+````
+kubectl apply -f nginx-liveness.yaml
+````
+
+![probe](imagens/probelive.png)
+
+Irei visualizar os pods nginx-deployment
+````
+kubectl get pods -l app=nginx-deployment
+````
+
+![probe](imagens/probelivenginx.png)
+
+Com o "Describe" eu consigo visualizar o Tipo de Probe do Deployment.
+````
+kubectl describe pod nginx-deployment-56866f4985-ngg7j
+````
+
+Liveness aplicada com sucesso, delay de 10s e timeout de 5s.
+
+````
+tcp-socket :80 delay=10s timeout=5s period=10s #success=1 #failure=3
+````
+
+![probe](imagens/probelivedescri.png)
+
+### Testando a Probe
+
+Para realizar um teste simples, irei acessar o Pod e matar o processo do Nginx ver a Probe entrando em ação.
+
+````
+kubectl exec -it nginx-deployment-56866f4985-ngg7j -- /bin/bash
+````
+
+![probe](imagens/execprobe.png
+
+Irei matar o processo 1 do Nginx, o container irá ficar sem processo e morrer.
+
+![probe](imagens/killnginx.png)
+
+O LivenessProbe foi configuada no campo "**periodSeconds: 10s**" para realizar testes a cada 10s. Após 3 falhas no total de 30s o Pod foi reiniciado pelo **Kubelet**.
+
+![probe](imagens/restartprob.png)
+
+Probe funcionando corretamente, caso não estivesse nenhuma Probe configurada, o Kubernetes não iria saber que o processo morreu, o Pod ficaria como Running porém a aplicação não iria funcionar.
+
+
+
 ### ReadinessProbe.
 
 ReadinessProbe é usada para verificar se o container está pronto para receber tráfego e requisições da rede externa.
+
+Exemplo de ReadinessProbe:
+
+nginx-readiness.yaml
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx-deployment
+  name: nginx-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: nginx-deployment
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: nginx-deployment
+    spec:
+      containers:
+      - image: nginx:1.19.2
+        name: nginx
+        resources:
+          limits:
+            cpu: "0.5"
+            memory: 256Mi
+          requests:
+            cpu: 0.25
+            memory: 128Mi
+        readinessProbe: # Onde definimos a nossa probe de leitura
+          httpGet: # O tipo de teste que iremos executar, neste caso, iremos executar um teste HTTP
+            path: / # O caminho que iremos testar
+            port: 80 # A porta que iremos testar
+          initialDelaySeconds: 10 # O tempo que iremos esperar para executar a primeira vez a probe
+          periodSeconds: 10 # De quanto em quanto tempo iremos executar a probe
+          timeoutSeconds: 5 # O tempo que iremos esperar para considerar que a probe falhou
+          successThreshold: 2 # O número de vezes que a probe precisa passar para considerar que o container está pronto
+          failureThreshold: 3 # O número de vezes que a probe precisa falhar para considerar que o container não está pronto
+
+```
+
+### Explicação ReadinessProbe
+
+Com a Probe readiness o Deployment do Nginx só irá trafegar dados para containers que estão prontos.
+
+````
+readinessProbe:
+  httpGet:
+    path: / #Verifica o Patch que o Nginx responde
+    port: 80 #porta do Nginx
+  initialDelaySeconds: 10 # Aguarda 10s após inicio do container para a 1º checagem
+  periodSeconds: 10 # Chega a cada 10s
+  timeoutSeconds: 5 # Timeout de 5s para marca como Falha
+  successThreshold: 2 # Pasa 2 vezes seguidas para o Pod ser considerado Pronto
+  failureThreshold: 3 # Se falhar 3 vezes, o Pod não é considerado como pronto
+````
+
+Enquanto o Pod não estiver pronto, o Service não irá encaminhar trafeco para ele.
+
+````
+kubectl get pods -l app=nginx-deployment -w
+````
+
+![probe](imagens/readiness.png)
+
+
+Visualizando os Deployment Nginx
+
+````
+kubectl get pods -l app=nginx-deployment -o wide
+````
+
+Irei entrar no Pod "nginx-deployment-575868f94-5wnx7" e matar o processo do Nginx.
+
+````
+kubectl exec -it nginx-deployment-575868f94-5wnx7 -- /bin/bash
+````
+
+![probe](imagens/probereadikill.png)
+
+O Pod ficou com status **READY 0/1** oque siginifica não pronto.
+
+![probe](imagens/probereadikill2.png)
+
+
+![probe](imagens/probereadikill4.png)
+
+O Pod foi reiniciado porque o único processo existente morreu e só voltou a receber trafego após o status como "Pronto" **READY 1/1**. Se não houvesse nenhuma Probe configurada, o status ficaria como **READY 1/1** mesmo o Pod não executando o serviço principal até o Pod morrer. Com readinessProbe o Pod recebe **READY 0/1** imediatamente.
+
+![probe](imagens/probereadikill3.png)
+
+
 
 ### StartupProbe
 
