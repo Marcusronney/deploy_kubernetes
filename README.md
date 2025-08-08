@@ -411,7 +411,7 @@ Para realizar um teste simples, irei acessar o Pod e matar o processo do Nginx v
 kubectl exec -it nginx-deployment-56866f4985-ngg7j -- /bin/bash
 ````
 
-![probe](imagens/execprobe.png
+![probe](imagens/execprobe.png)
 
 Irei matar o processo 1 do Nginx, o container irá ficar sem processo e morrer.
 
@@ -1183,7 +1183,7 @@ kubectl describe storageclass standard
 
 ![storageclass](imagens/pvcima.png)
 
-PV é um objeto no K8s que representa um armazenamento físico dentro do cluster. Ele pode ser um HD, SSD, NAS ou algum serviço Cloud como, por exemplo o AWS EBS.
+PV é um objeto no K8s que representa um armazenamento físico dentro do cluster. Ele pode ser um HD, SSD, NAS ou algum serviço Cloud como, por exemplo o AWS EBS.Ele é provisionado manualmente pelo administrador ou automaticamente através de uma StorageClass.
 
 Ele é utilizado para fornecer armazenamento durável, os dados são armazenados mesmo quando o Pod morre, reiniciados ou movidos de Node.
 
@@ -2007,6 +2007,22 @@ kubectl port-forward deployment/giropops-senhas 5000:5000
 Aplicação Buildada e acessada no Kubernetes com sucesso.
 
 ![k8s](imagens/aplicacao_kubernetes.png)
+
+
+
+--------------------
+
+
+
+`````
+kubectl apply -f namespace.yaml
+kubectl apply -f redis.yaml
+kubectl apply -f postgres.yaml
+kubectl apply -f worker.yaml
+kubectl apply -f vote.yaml
+kubectl apply -f result.yaml
+````
+
 
 
 
