@@ -568,7 +568,7 @@ spec:
           initialDelaySeconds: 10 # Quantos segundos vamos esperar para executar a primeira verificação
           periodSeconds: 10 # A cada quantos segundos vamos executar a verificação
           timeoutSeconds: 5 # Quantos segundos vamos esperar para considerar que a verificação falhou
-          failureThreshold: 3 # Quantos falhas consecutivas vamos aceitar antes de reiniciar o contai
+          failureThreshold: 3 # Quantos falhas consecutivas vamos aceitar antes de reiniciar o container
 ````
 
 
@@ -1813,7 +1813,7 @@ Definindo as Portas exportas.
 
 Service do Banco de dados Redis que a aplicação irá usar.
 
-redis-serive.yaml
+redis-service.yaml
 ````
 apiVersion: v1
 kind: Service
