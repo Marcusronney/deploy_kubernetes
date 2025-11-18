@@ -1,8 +1,10 @@
 # deploy_kubernetes
 
+![Arquitetura Kubernetes](imagens/Kubernetes_banner.png)
+
 Este repositório tem como objetivo apresentar o funcionamento do Kubernetes de forma direta e prática, demonstrando também como realizar o deploy de algumas aplicações. Antes de avançar para o processo de deploy, serão listadas as principais funcionalidades do Kubernetes.
 
-![Arquitetura Kubernetes](imagens/kubernetes.png)
+![Arquitetura Kubernetes](imagens/kubernetes_kind.png)
 
  Antes de iniciarmos o deploy - **O que é Kubernetes**?
 
@@ -86,7 +88,7 @@ kubectl apply -f app.yaml ───▶ kube-apiserver ───▶ etcd (salva e
 ````
 
 
-
+![Arquitetura Kubernetes](imagens/kubernetes.png)
 
 ----------
 
@@ -2011,20 +2013,6 @@ Aplicação Buildada e acessada no Kubernetes com sucesso.
 
 
 --------------------
-
-
-
-`````
-kubectl apply -f namespace.yaml
-kubectl apply -f redis.yaml
-kubectl apply -f postgres.yaml
-kubectl apply -f worker.yaml
-kubectl apply -f vote.yaml
-kubectl apply -f result.yaml
-````
-
-
-
 
 
 
