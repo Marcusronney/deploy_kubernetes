@@ -4,7 +4,7 @@
 
 Este repositório tem como objetivo apresentar o funcionamento do Kubernetes de forma direta e prática, demonstrando também como realizar o deploy de algumas aplicações. Antes de avançar para o processo de deploy, serão listadas as principais funcionalidades do Kubernetes.
 
-![Arquitetura Kubernetes](imagens/kubernetes_kind.png)
+
 
  Antes de iniciarmos o deploy - **O que é Kubernetes**?
 
@@ -769,6 +769,8 @@ kubectl delete service meu-service
 
 # DEPLOY CLUSTER KUBERNETES
 
+![Docker](imagens/dockerversion.png)
+
 Agora que já foi explicado os principais componentes do K8s. Irei criar meu cluster K8s localmente usando o KinD.
 
 [KinD](https://github.com/kubernetes-sigs/kind) (Kubernetes IN Docker) é uma ferramenta que permite rodar clusters Kubernetes inteiros dentro de containers Docker, de forma rápida, leve e local. Ele criado principalmente para desenvolvimento, testes e CI/CD, permitindo simular um ambiente Kubernetes sem precisar de VMs, cloud, ou uma instalação pesada. Outra forma de efetuar deploy do K8s localmente é com o [Minikube](https://minikube.sigs.k8s.io/docs/start/?arch=%2Fwindows%2Fx86-64%2Fstable%2F.exe+download).
@@ -792,12 +794,15 @@ newgrp docker
 
 Docker Instalado!
 
-![Docker](imagens/dockerversion.png)
+
 
 
 ------------------------
 
-Deploy KinD
+### Deploy KinD
+
+![Arquitetura Kubernetes](imagens/kubernetes_kind.png)
+
 ````
 curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
 chmod +x kind
