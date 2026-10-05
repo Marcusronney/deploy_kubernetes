@@ -1668,6 +1668,8 @@ Irei demostrar como realizar o Deploy do Giropops-Senhas dentro do Kubernetes us
 
 Como o projeto Giropops-Sebgas é Docker, irei utilizar uma imagem já Buildada armazenada no Docker Hub, o Build foi realizado com Melange + APKO, no repositório [Desafio PICK](https://github.com/badtuxx/giropops-senhas) eu demostro como efetuei o processo.
 
+
+
 Imagem: https://hub.docker.com/u/geforce8400gsd
 
 ### Manifests Giropops-Senhas
